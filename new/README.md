@@ -200,7 +200,7 @@ intent of what they do.
 |                   
 +---Modules
 |   +---Login
-|   |   +---Core
+|   |   +---Domain
 |   |   |   |   App.config
 |   |   |   |   Domain.csproj
 |   |   |   |   packages.config
@@ -229,20 +229,6 @@ intent of what they do.
 |   |   |   |   
 |   |   |   \---Properties
 |   |   |           AssemblyInfo.cs
-|   |   |           
-|   |   +---Login
-|   |   |   |   Core.csproj
-|   |   |   |   RegisterEventSubscribers.cs
-|   |   |   |   RegisterHandlers.cs
-|   |   |   |   
-|   |   |   +---Listeners
-|   |   |   |       UserProfileUpdatedSubscriber.cs
-|   |   |   |       
-|   |   |   +---Properties
-|   |   |   |       AssemblyInfo.cs
-|   |   |   |       
-|   |   |   \---Services
-|   |   |           LoginSubmitHandler.cs
 |   |   |           
 |   |   +---Messages
 |   |   |   |   Messages.csproj
