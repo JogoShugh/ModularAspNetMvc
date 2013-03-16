@@ -1,6 +1,6 @@
 # ModularAspNetMvc
 
-This is a work in progress of a modular architecture for ASP.NET MVC, utilizing the awesome MvcCodeRouting NuGet package.
+This is a work in progress of a modular architecture for ASP.NET MVC, utilizing the awesome MvcCodeRouting NuGet package and MEF, the Managed Extensibility Framework from `System.ComponentModel.Composition`.
 
 # High level summary
 
@@ -28,7 +28,292 @@ web app's bin folder for runtime execution.
 Contains the application shell which bootstraps the module loading process. After modules are loaded, then there are actual
 MVC routes ready to respond to requests, such as the default of `Authentication/Login`.
 
-# What is a Module?
+# How do modules get loaded into the web app?
+
+Each module contains all code that it needs. That is to say, each module is a **vertical slice**, and is fully
+*shippable* in the agile sense. Architectually, it is fully *separate* from the main application.
+
+The main application's job is to compose and execute **modules**, not to be a monolithic beast that programmers must
+"fork and modify", thus impacting the lives of all other module authors and users when they merge the code.
+
+Here's how ASP.NET loads a module:
+
+* Before running the web site, we run `Core.Modules.Deploy.exe`. This copies all the modules' DLLs into the `Core.Ui.Mvc\bin` folder.
+* Next, in `Global`, we have this code:
+
+```csharp
+public void RegisterRoutes(RouteCollection routes)        
+{            
+    routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
+
+    // NOTE: Take this out because MvcCodeRouting is doing our work now...
+    //routes.MapRoute(
+    //    "Default", // Route name
+    //    "{controller}/{action}/{id}", // URL with parameters
+    //    new { controller = "Home", action = "Index", id = UrlParameter.Optional } // Parameter defaults
+    //);
+
+    ViewEngines.Engines.EnableCodeRouting();
+
+    new BootStrapper().Boot();
+}
+```
+
+What's happening here is like your standard MVC template, but instead of relying on the default route, we delegate 
+to the very awesome MvcCodeRouting NuGet package. This will take care of adding routes into the main route table 
+for us. We'll see how in a bit.
+
+Here's the next bit:
+
+```csharp
+public class BootStrapper
+{
+    public void Boot()
+    {
+        var moduleLoader = new ModuleLoader();
+        moduleLoader.LoadAllModules();
+
+        var messageHandlerWiring = new MessageHandlerWiring();
+        messageHandlerWiring.WireMessageHandlers(MessageProcessor.Instance);
+
+        var eventSubscriberWiring = new EventSubscriberWiring();
+        eventSubscriberWiring.WireEventListeners(EventAggregator.Instance);
+    }
+}
+```
+
+Let's look only at the ModuleLoader for now. Here's what it does:
+
+```csharp
+public class ModuleLoader
+{
+    public void LoadAllModules()
+    {
+        new PartsList<IModule>(module => module.Initialize(this));
+    }
+
+    public void MapCodeRoutes(string baseRoute, Type rootControllerType)
+    {
+        var routes = RouteTable.Routes;
+
+        routes.MapCodeRoutes(
+            baseRoute: baseRoute,
+            rootController: rootControllerType,
+            settings: new CodeRoutingSettings
+                          {
+                              UseImplicitIdToken = true,
+                              EnableEmbeddedViews = true
+                          });
+    }
+}
+```
+
+That's not a lot of code, but it actually does everything we need to get our routes added, and our views dynamically
+pulled out of the assemblies contained in the modules!
+
+The `PartsList` generic is a convenience on top of MEF, which basically tells MEF to scan the `bin` folder for all
+instances of IModule, instantiate it, and then call its `Initialize` method, passing in the `ModuleLoader` instance itself.
+
+Further down, we have the `MapCodeRoutes` method. This utilizes from extension methods that MvcCodeRouting provides. And, it
+basically is telling MvcCodeRouting to setup default routes to use an implicit Id, like `route/{id}`, and that our views are 
+actually embedded inside of module assemblies, not located in physical folders in a monolithic "Web" project (grrrrrrr!)
+
+## The Authentication module's Module.cs file
+
+What's in an instance of IModule? Not much:
+
+```csharp
+[Export(typeof(IModule))]
+public class Module : DefaultModule<AuthenticationController>
+{
+    protected override string GetBaseControllerRoute()
+    {
+        return "Authentication";
+    }
+}
+```
+
+Basically, this one just tells the framework that its route name is "Authentication". Perhaps we could get away without 
+this at all if we used a convention that said route names are the same as the module name.
+
+The base class, `DefaultModule<AuthenticationController>` is telling the framework that the default controller will 
+be the `AuthenticationController`, and the rest of the class does this:
+
+```csharp
+namespace Core.Infrastructure.Ui.Mvc.Modularity
+{
+    [Export(typeof(IModule))]
+    public abstract class DefaultModule<TBaseControllerType> : IModule
+    {
+        protected abstract string GetBaseControllerRoute();
+
+        public void Initialize(ModuleLoader moduleLoader)
+        {
+            var baseControllerRoute = GetBaseControllerRoute();
+            moduleLoader.MapCodeRoutes(baseControllerRoute, typeof(TBaseControllerType));
+        }
+    }
+}
+```
+
+So, you see that the `Initialize` call we saw in the `ModuleLoader` gets called, and then the route is fetched, and
+the routes get mapped.
+
+## AuthenticationController implementation
+
+There's not much! Just a redirect:
+
+```csharp
+namespace Core.Modules.Authentication.Ui.Mvc.Controllers
+{
+    public class AuthenticationController : Controller
+    {
+        //
+        // GET: /Authentication/
+
+        public ActionResult Index()
+        {
+            return Redirect("Login");
+        }
+
+    }
+}
+```
+
+Ok, so here's LoginController:
+
+```csharp
+namespace Core.Modules.Authentication.Ui.Mvc.Controllers.Login
+{
+    public class LoginController : DefaultController
+    {
+        public ActionResult Index()
+        {
+            var model = new LoginSubmitViewModel();
+            model.CommandActions.Add("Login", "Submit");
+            model.CommandActions.Add("Cancel", "Index");
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [PostAction]
+        public ActionResult Submit(LoginSubmitViewModel viewModel)
+        {
+            if (ModelState.IsValid)
+            {
+                var command = new LoginSubmit
+                                  {
+                                      Password = viewModel.Password,
+                                      UserName = viewModel.UserName
+                                  };
+                var response = ProcessCommand<TypedMessageResponse<string>>(command);
+
+                return Content(response.Data);
+            }
+
+            return Content("TODO: handle errors properly here.");
+        }
+    }
+}
+```
+
+Looks like a lot is going on here,  but with very little code. That's true.
+
+First, an HTTP GET will invoke the `Index` method, which news up a `LoginSubmitViewModel` and adds a couple of 
+actions to it. That class looks like this:
+
+```csharp
+namespace Core.Modules.Authentication.Ui.Mvc.ViewModels
+{
+    public class LoginSubmitViewModel
+    {
+        public LoginSubmitViewModel()
+        {
+            CommandActions = new CommandActionCollection();
+        }
+
+        [Required]
+        public string UserName { get; set; }
+
+        [Required]
+        public string Password { get; set; }
+
+        [ScaffoldColumn(false)]
+        public CommandActionCollection CommandActions { get; set; }
+    }
+}
+```
+
+Notice we use some simple data annotations and also specify that our `CommandActions` collection is not to be scaffolded.
+
+## The Login View
+
+Now, this part is pretty simple:
+
+```razor
+@using System.Web.Mvc.Html
+@model Core.Modules.Authentication.Ui.Mvc.ViewModels.LoginSubmitViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewBag.Title = "Login";
+}
+
+@using (Ajax.BeginForm("Index", "Authentication/Login", new AjaxOptions 
+{ InsertionMode = InsertionMode.Replace, HttpMethod = "Post", UpdateTargetId = "Results"}, new { id = "LoginForm" }))
+{
+@Html.ValidationSummary("The following errors were found:", new { id = "ValidationSummary" })
+<fieldset>
+    <legend>Login</legend>
+    @Html.EditorForModel()
+    @Html.EditorFor(m => Model.CommandActions)
+</fieldset>
+}
+
+<div id="Results"></div>
+```
+
+There's actually a lot of stuff we can say about this, but to summarize:
+
+1. We are utilizing MVC's `EditorForModel`, and `EditorFor`, which will attempt to find "render templates" for each
+property on the model. When it does this, it will find that we have an `EditorTemplates\Object.cshtml` and 
+`EditorTemplates\CommandActionCollection.cshtml` file. I don't want to go too much into these, because I would prefer 
+to refactor this to take place on the client. But, suffice it to say, these render the HTML for the view 
+based on simple templates and meta-data.
+2. And, we use AjAX to submit the form.
+
+## LoginController.Submit POST operation
+
+This looked pretty interesting:
+
+```csharp
+[HttpPost]
+[PostAction]
+public ActionResult Submit(LoginSubmitViewModel viewModel)
+{
+    if (ModelState.IsValid)
+    {
+        var command = new LoginSubmit
+                          {
+                              Password = viewModel.Password,
+                              UserName = viewModel.UserName
+                          };
+        var response = ProcessCommand<TypedMessageResponse<string>>(command);
+
+        return Content(response.Data);
+    }
+
+    return Content("TODO: handle errors properly here.");
+}
+```
+
+Here we are creating an instance of a `Command`, the `LoginSubmit` class. This is just a simple data class that 
+bundles our parameters to send into the to application. We invoke the ProcessCommand method (which could use 
+some refactoring), and then return the response data.
+
+## TODO: explain the next parts
+
+# How is a module constructed, anyway?
 
 A module in this app consists of one or more physical DLLs, and, thus far, can contain a number of "standard" classes. Some classes
 have special implications because they inherit base classes or implement interfaces from the `Core.Infrastructure` project, and 
