@@ -17,8 +17,8 @@ namespace Core.Ui.Mvc
             filters.Add(new HandleErrorAttribute());
         }
 
-        public void RegisterRoutes(RouteCollection routes)
-        {
+        public void RegisterRoutes(RouteCollection routes)        
+        {            
             routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
 
             // NOTE: Take this out because MvcCodeRouting is doing our work now...

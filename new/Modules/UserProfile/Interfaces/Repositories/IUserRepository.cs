@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace Core.Modules.UserProfile.Interfaces.Repositories
+﻿namespace Core.Modules.UserProfile.Interfaces.Repositories
 {
     interface IUserRepository
     {

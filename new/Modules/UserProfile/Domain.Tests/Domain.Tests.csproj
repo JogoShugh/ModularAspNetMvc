@@ -63,11 +63,11 @@
     </ProjectReference>
     <ProjectReference Include="..\Domain\Domain.csproj">
       <Project>{00d3991e-aadd-4237-a06c-7bae590b81ea}</Project>
-      <Name>Domain</Name>
+      <Name>Domain %28Modules\UserProfile\Domain%29</Name>
     </ProjectReference>
     <ProjectReference Include="..\Messages\Messages.csproj">
       <Project>{528B6BCF-EC86-4AA6-A4B4-AC8C994162AD}</Project>
-      <Name>Messages</Name>
+      <Name>Messages %28Modules\UserProfile\Messages%29</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

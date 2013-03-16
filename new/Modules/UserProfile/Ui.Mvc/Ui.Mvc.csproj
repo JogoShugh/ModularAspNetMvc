@@ -30,7 +30,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\..\..\Core.Ui.Mvc\bin\</OutputPath>
+    <OutputPath>..\..\..\Modules.Deploy\UserProfile\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -79,10 +79,11 @@
     <ProjectReference Include="..\..\..\Core.Infrastructure\Core.Infrastructure.csproj">
       <Project>{560C5BCB-0657-48C4-9B50-BEFFD66C057E}</Project>
       <Name>Core.Infrastructure</Name>
+      <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\Messages\Messages.csproj">
       <Project>{528B6BCF-EC86-4AA6-A4B4-AC8C994162AD}</Project>
-      <Name>Messages</Name>
+      <Name>Messages %28Modules\UserProfile\Messages%29</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

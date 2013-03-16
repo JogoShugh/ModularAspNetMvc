@@ -17,7 +17,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\..\..\Core.Ui.Mvc\bin\</OutputPath>
+    <OutputPath>..\..\..\Modules.Deploy\Authentication\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -39,6 +39,7 @@
     <ProjectReference Include="..\..\..\Core.Infrastructure\Core.Infrastructure.csproj">
       <Project>{560C5BCB-0657-48C4-9B50-BEFFD66C057E}</Project>
       <Name>Core.Infrastructure</Name>
+      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

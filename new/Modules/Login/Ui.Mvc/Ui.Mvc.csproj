@@ -30,7 +30,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\..\..\Core.Ui.Mvc\bin\</OutputPath>
+    <OutputPath>..\..\..\Modules.Deploy\Authentication\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -46,6 +46,7 @@
   <ItemGroup>
     <Reference Include="MvcCodeRouting, Version=0.9.8.0, Culture=neutral, PublicKeyToken=bf7cf9743009fe42, processorArchitecture=MSIL">
       <HintPath>..\..\..\packages\MvcCodeRouting.0.9.8\lib\net40\MvcCodeRouting.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Web.Mvc, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
@@ -83,6 +84,7 @@
     <ProjectReference Include="..\..\..\Core.Infrastructure\Core.Infrastructure.csproj">
       <Project>{560C5BCB-0657-48C4-9B50-BEFFD66C057E}</Project>
       <Name>Core.Infrastructure</Name>
+      <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\Messages\Messages.csproj">
       <Project>{9E7B8D4E-25D6-4152-93BF-2732C25DA2D8}</Project>

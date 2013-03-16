@@ -47,6 +47,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain", "Modules\UserProfi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain.Tests", "Modules\UserProfile\Domain.Tests\Domain.Tests.csproj", "{C04D8137-07B1-45FF-820E-4A3AB377E5F9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core.Modules.Deploy", "Core.Modules.Deploy\Core.Modules.Deploy.csproj", "{574856A1-8544-42C3-A88E-5B74FCF1612C}"
+EndProject
 Global
 	GlobalSection(TestCaseManagementSettings) = postSolution
 		CategoryFile = Core.vsmdi
@@ -180,6 +182,16 @@ Global
 		{C04D8137-07B1-45FF-820E-4A3AB377E5F9}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{C04D8137-07B1-45FF-820E-4A3AB377E5F9}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{C04D8137-07B1-45FF-820E-4A3AB377E5F9}.Release|x86.ActiveCfg = Release|Any CPU
+		{574856A1-8544-42C3-A88E-5B74FCF1612C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{574856A1-8544-42C3-A88E-5B74FCF1612C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{574856A1-8544-42C3-A88E-5B74FCF1612C}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{574856A1-8544-42C3-A88E-5B74FCF1612C}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{574856A1-8544-42C3-A88E-5B74FCF1612C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{574856A1-8544-42C3-A88E-5B74FCF1612C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{574856A1-8544-42C3-A88E-5B74FCF1612C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{574856A1-8544-42C3-A88E-5B74FCF1612C}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{574856A1-8544-42C3-A88E-5B74FCF1612C}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{574856A1-8544-42C3-A88E-5B74FCF1612C}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
