@@ -228,7 +228,7 @@ reality, the `Calculator` class takes a hard-dependency on each operation class,
 interchangeable, through its `IOperation` interface. In fact, there's nothing preventing us from incorrectly 
 instantiating `Add` inside of `Calculator.Subtract`, or vice-versa.
 
-# Adding loose-coupling to Calculator with `System.ComponentModel.Compisition`
+# Loosening up that starchy, static Calculator class
 
 Microsoft added the Managed Extensibility Framework (MEF) to the .NET Framework in version 4.0. MEF is desinged to 
 allow you to write more modular, extensible applications with small, loosely-coupled parts that get "composed" at 
@@ -237,6 +237,109 @@ run-time to form a complete application. Let's use it now.
 All you need to understand, for the moment, is that MEF utilizes two simple concepts: Import and Export. We will
 make all of our IOperation implementations Exports, and we will make the Calculator class Import those Exports.
 
+Here's the code:
+
+```csharp
+using NUnit.Framework;
+using System;
+using System.ComponentModel.Composition;
+using System.ComponentModel.Composition.Hosting;
+using System.Reflection;
+
+namespace Modularity.MEFCalculator
+{
+	[TestFixture()]
+	public class MEFCalculatorTests
+	{
+		private Calculator _subject = new Calculator();
+		
+		[Test()]
+		public void add_sums_three_numbers()
+		{
+			var result = _subject.Add (5.5M, 6M, 7M);
+			
+			Assert.AreEqual (18.5, result);
+		}
+		
+		[Test()]
+		public void subtract_removes_two_numbers_from_first()
+		{
+			var result = _subject.Subtract (10M, 5M, 3M);
+			
+			Assert.AreEqual (2M, result);
+		}
+	}
+
+	public interface IOperation
+	{
+		decimal Execute(params decimal[] args);
+	}
+
+	[Export]
+	public class Add : IOperation {
+		public decimal Execute(params decimal[] args) {
+			decimal result = 0M;
+			for(var i = 0; i < args.Length; i++) {
+				result += args[i];
+			}
+			return result;
+		}
+	}
+
+	[Export]
+	public class Subtract : IOperation {
+		public decimal Execute(params decimal[] args) {
+			decimal result = 0M;
+			if (args.Length > 0)
+			{
+				result = args[0];
+				if (args.Length > 1) {
+					for(var i = 1; i < args.Length; i++) {
+						result = result - args[i];
+					}
+				}
+			}
+			return result;
+		}
+	}
+
+	public class Calculator
+	{
+		public Calculator ()
+		{
+			CompositionHelper.ComposeParts (this);
+		}
+
+		[Import]
+		private Add _add;
+		public decimal Add(params decimal[] args) 
+		{
+			return _add.Execute (args);
+		}
+
+		[Import]
+		private Subtract _subtract;
+		public decimal Subtract(params decimal[] args)
+		{
+			return _subtract.Execute (args);
+		}
+	}
+
+	public static class CompositionHelper 
+	{
+		public static void ComposeParts(object compositionTarget) {
+			var catalog = new AssemblyCatalog (Assembly.GetExecutingAssembly ());
+			var container = new CompositionContainer (catalog);
+			container.SatisfyImportsOnce(compositionTarget);
+		}
+	}
+}
+```
+
+It appears we are adding more and more code! That's true, for now. But, notice the `[Export]` attributes on the 
+`Add` and `Subtract` classes and the `[Import]` attributes on top of the private fields above the `Add` and 
+`Subtract` methods in the `Calculator` class. These attribute pairs are what enable the 
+`CompositionHelper.ComposeParts` method to inject the `Calculator` class with instances of those classes.
 
 
 
