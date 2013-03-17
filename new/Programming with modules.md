@@ -1,10 +1,11 @@
 # What is a module?
 
-Before we even start talking about concepts like test-driven development, behavior-driven development, 
-or any of the ideas from domain-driven design and the latest hotness, Command and Query Responsibility Segregation 
+Before we even start talking about concepts like Test-Driven Development, Behavior-Driven Development, 
+or any of the ideas from Domain-Driven Design and the latest hotness, Command and Query Responsibility Segregation 
 (CQRS), we need some lessons on modularity.
 
-A great definition of a modular programming comes from Wikipedia:
+A great definition of a [modular programming](http://en.wikipedia.org/wiki/Modular_programming) 
+comes from Wikipedia:
 
 > Modular programming (also called "top-down design" and "stepwise refinement") is a software design technique
 > that emphasizes separating the functionality of a program into independent, interchangeable modules,
