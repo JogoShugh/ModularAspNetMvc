@@ -1,7 +1,7 @@
 # What is a module?
 
 Before we even start talking about concepts like test-driven development, behavior-driven development, 
-or any of the ideas from domain-driven design and the latest hotnes, Command and Query Responsibility Segregation 
+or any of the ideas from domain-driven design and the latest hotness, Command and Query Responsibility Segregation 
 (CQRS), we need some lessons on modularity.
 
 A great definition of a modular programming comes from Wikipedia:
