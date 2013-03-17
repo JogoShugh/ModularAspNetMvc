@@ -342,6 +342,161 @@ It appears we are adding more and more code! That's true, for now. But, notice t
 `Subtract` methods in the `Calculator` class. These attribute pairs are what enable the 
 `CompositionHelper.ComposeParts` method to inject the `Calculator` class with instances of those classes.
 
+Yet, we still have not achieved a true decoupling, have we? The `Calculator` class still has hard dependencies upon the 
+`Add` and `Subtract` concrete implementations! Let's change that now.
+
+# Truer decoupling with named imports
+
+This time, we'll modify the private class fields to be of type `IOperation`, the interface that both `Add` and `Subtract` 
+implement. This takes us one step closer to true decoupling -- something we'll keep working toward in successive iterations!
+
+```csharp
+using NUnit.Framework;
+using System;
+using System.ComponentModel.Composition;
+using System.ComponentModel.Composition.Hosting;
+using System.Reflection;
+
+namespace Modularity.MEFCalculatorNamedExports
+{
+	[TestFixture()]
+	public class MEFCalculatorNamedExportsTests
+	{
+		private Calculator _subject = new Calculator();
+		
+		[Test()]
+		public void add_sums_three_numbers()
+		{
+			var result = _subject.Add (5.5M, 6M, 7M);
+			
+			Assert.AreEqual (18.5, result);
+		}
+		
+		[Test()]
+		public void subtract_removes_two_numbers_from_first()
+		{
+			var result = _subject.Subtract (10M, 5M, 3M);
+			
+			Assert.AreEqual (2M, result);
+		}
+	}
+
+	public interface IOperation
+	{
+		decimal Execute(params decimal[] args);
+	}
+
+	[Export("Add", typeof(IOperation))]
+	public class Add : IOperation {
+		public decimal Execute(params decimal[] args) {
+			decimal result = 0M;
+			for(var i = 0; i < args.Length; i++) {
+				result += args[i];
+			}
+			return result;
+		}
+	}
+
+	[Export("Subtract", typeof(IOperation))]
+	public class Subtract : IOperation {
+		public decimal Execute(params decimal[] args) {
+			decimal result = 0M;
+			if (args.Length > 0)
+			{
+				result = args[0];
+				if (args.Length > 1) {
+					for(var i = 1; i < args.Length; i++) {
+						result = result - args[i];
+					}
+				}
+			}
+			return result;
+		}
+	}
+
+	public class Calculator
+	{
+		public Calculator ()
+		{
+			CompositionHelper.ComposeParts (this);
+		}
+
+		[Import("Add")]
+		private IOperation _add;
+		public decimal Add(params decimal[] args) 
+		{
+			return _add.Execute (args);
+		}
+
+		[Import("Subtract")]
+		private IOperation _subtract;
+		public decimal Subtract(params decimal[] args)
+		{
+			return _subtract.Execute (args);
+		}
+	}
+
+	public static class CompositionHelper 
+	{
+		public static void ComposeParts(object compositionTarget) {
+			var catalog = new AssemblyCatalog (Assembly.GetExecutingAssembly ());
+			var container = new CompositionContainer (catalog);
+			container.SatisfyImportsOnce(compositionTarget);
+		}
+	}
+}
+```
+
+# Segregating the modules into separate deployment packages -- DLLs
+
+In successive refactorings, we've achieved the following so far:
+
+* Moved the logic from one big class into smaller, discrete classes, each responsible for calculating one specific 
+mathematical operation.
+* Generalized the concept of the calculations into the `IOperation` interface, with its one method signature that takes 
+an array of decimals, and returns a decimal result.
+* Decoupled the `Calculator` from the specific `Add` and `Subtract` implementations, making it depend only upon the 
+`IOperation` interface.
+* Used the Managed Extensibility Framework (MEF) with its `[Import]` and `[Export]` attributes to dynamically 
+compose the `Calculator` instance at run-time, injecting it with the concrete `Add` and `Subtract` implementations.
+
+Yet, we are just playing around with concepts if we never broach the subject of **physical separation of classes** from each 
+other, and ultimately of their deployment. Let's get started!
+
+Before showing the code, let's look at the folder structure:
+
+```text
++---Calculator
+|       Calculator.cs
+|          
++---Interfaces
+|       IOperation.cs      
+|               
++---MEFCalculator.Tests
+|       MEFCalculatorTests.cs
+|           
++---Modules
+|   +---Add
+|   |       Add.cs
+|   |      
+|   \---Subtract
+|           Subtract.cs
+|                   
+\---Modules.Deploy
+        Add.dll
+        Interfaces.dll
+        Subtract.dll
+```
+
+The `Calculator` itself is in its own project, under the Calculator folder. The interface for the operations is in its own 
+assembly, and then we have a `Modules` folder that contains separate projects for `Add` and `Subjract`. We also have a 
+folder named `Modules.Deploy`, which is where the `Add` and `Subtract` DLLs get copied to after building. In our examples 
+thus far, we've used MEF's `AssemblyCatalog`, but we're about to use the `DirectoryCatalog`, which lets us pull in 
+DLLs from a folder into the composition process. That's how we can compose the `Calculator` instance with types culled from 
+multiple assemblies with ease -- and just a couple of lines of code.
+
+
+
 
 
 
