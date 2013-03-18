@@ -643,6 +643,188 @@ classes. Let's do a new refactoring that, while removing our strongly-typed faca
 add additional implementations of the `IOperation` interface into the `Modules.Deploy` folder, and then invoke them, without 
 needing to modify the `Calculator` class at all.
 
+# Using [ImportMany] to pull in multiple exports
+
+I'll only show code for clasess that change from the previous iteration.
+
+## Modules\Add\Add.cs
+
+```csharp
+using System.ComponentModel.Composition;
+
+namespace MEFCalculator
+{
+	[Export(typeof(IOperation))]
+	public class Add : IOperation {
+		public decimal Execute(params decimal[] args) {
+			decimal result = 0M;
+			for(var i = 0; i < args.Length; i++) {
+				result += args[i];
+			}
+			return result;
+		}
+	}
+}
+```
+
+## Modules\Subtract\Subtract.cs
+
+```csharp
+using System.ComponentModel.Composition;
+
+namespace MEFCalculator
+{
+	[Export(typeof(IOperation))]
+	public class Subtract : IOperation {
+		public decimal Execute(params decimal[] args) {
+			decimal result = 0M;
+			if (args.Length > 0)
+			{
+				result = args[0];
+				if (args.Length > 1) {
+					for(var i = 1; i < args.Length; i++) {
+						result = result - args[i];
+					}
+				}
+			}
+			return result;
+		}
+	}
+}
+```
+## Calculator.Dynamic\Calculator.cs
+
+First, note we have an `[ImportMany]` attribute on top of the `List<IOperation> _operations` member variable. This tells 
+MEF to pull in **all** instances of `IOperation` in its run-time catalog. Then, wee've add a method named 
+`Execute` to the `Calculator` class itself, which takes a string name for the operation, and 
+the array of decimal arguments. Using LINQ, we look it up by name in our `_operations` list, and then invoke it! That's all 
+it takes. Given this, can you see how we could add new DLLs for operations like divid, multiply, power, etc?
+
+```csharp
+using System.ComponentModel.Composition;
+using System.ComponentModel.Composition.Hosting;
+using System.Reflection;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System;
+
+namespace MEFCalculator
+{
+	public class Calculator
+	{
+		public Calculator()
+		{
+			CompositionHelper.ComposeParts(this);
+		}
+		
+		[ImportMany]
+		private List<IOperation> _operations;
+
+		public decimal Execute(string operationName, params decimal[] args) {
+			IOperation operation = _operations.FirstOrDefault
+				(x => x.GetType().Name.ToLower().Equals(operationName.ToLower(), StringComparison.OrdinalIgnoreCase));
+			if (operation != null) {
+				return operation.Execute (args);
+			}
+			return 0M;
+		}			
+	}
+	
+	public static class CompositionHelper 
+	{
+		public static void ComposeParts(object compositionTarget) {
+			var catalog = new DirectoryCatalog(
+				@"C:\Projects\github\ModularAspNetMvc\Chapters\Modularity\MEFCalculator.DynamicInvoke\Modules.Deploy");
+			var container = new CompositionContainer(catalog);
+			container.SatisfyImportsOnce(compositionTarget);
+		}
+	}
+}
+```
+
+# Adding a console interface for our calculator
+
+Now that we've achieved a number of important modularity goals, let's put a more interactive user interface on top of our 
+calculator. This is a very rudimentary and simple interface, but one that will carry us into two more example user interfaces 
+that will make more sense (mobile web, and desktop).
+
+## Add ExecuteScript method to Calculator
+
+It's certainly debatable whether we should but the following method directly on the `Calculator` class or do it elsewhere, but 
+for illustration purposes, we'll do it on the `Calculator`. But, first, the new test case in our test class:
+
+This test specifies that we can pass a string, separated by new-line characters and containing one command per line, into 
+the calcuator and it will produce an array of results.
+
+```csharp
+		[Test]
+		public void runs_script_with_multiple_operations()
+		{
+			const string mathScript =
+@"Add 6 7 8
+Subtract 20 15 1
+Add 1 2 4
+";
+			var results = _subject.ExecuteScript(mathScript).ToList();
+			
+			Assert.AreEqual(21, results[0]);
+			Assert.AreEqual(4, results[1]);
+			Assert.AreEqual(7, results[2]);
+		}
+	}
+}
+```
+
+Now, add a new C# console application project named `MathConsole` with this code in a file called `MathConsole.cs` 
+(or the Main.cs file):
+
+```csharp
+using System;
+using MEFCalculator;
+using System.Linq;
+using System.Collections.Generic;
+
+namespace MathConsole
+{
+	public static class MathConsole
+	{
+		public static void Main(string[] args)
+		{
+			var calc = new Calculator();
+			var line = string.Empty;
+
+			WriteMessage();
+			while ((line = Console.ReadLine()) != "exit") {
+				var result = calc.ExecuteScript(line).FirstOrDefault();
+				if (result != Decimal.MinValue) {
+					Console.WriteLine("Result = " + result);
+				}
+				WriteMessage();
+			}
+		}
+
+		private static void WriteMessage() {
+			Console.WriteLine("Type a math expression in the form of: Add 1 2 3 or Subtract 20 15 1");
+		}
+	}
+}
+
+```
+
+This class is deliberately simple, and not very robust. That's fine for now. Set the `MathConsole` as the solution's 
+start-up project, and run it. You can now type in `Add 5 6 7` or `Subtract 20 9 2`, and so forth.
+
+# Relocating test cases to their appropriate module directory
+
+TODO
+
+# Simulating dependencies with stub  or mock objects for the `Calculator` test
+
+TODO -- consider AutoMock, FakeItEasy. Also, prefer creating the instances by hand as simple implementations of IOperation. 
+This will force a refactoring of Calculator, in that it currently has a hard-coded DirectoryCatalog.
+
+
 # Outline for remainder
 
 * Iteration: Dynamically add and invoke operations from a command-line script interface, interactively
