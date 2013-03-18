@@ -495,15 +495,156 @@ thus far, we've used MEF's `AssemblyCatalog`, but we're about to use the `Direct
 DLLs from a folder into the composition process. That's how we can compose the `Calculator` instance with types culled from 
 multiple assemblies with ease -- and just a couple of lines of code.
 
+Here are the files to create for this solution:
 
+## Calculator.cs
 
+```csharp
+using System.ComponentModel.Composition;
+using System.ComponentModel.Composition.Hosting;
+using System.Reflection;
 
+namespace MEFCalculator
+{
+	public class Calculator
+	{
+		public Calculator()
+		{
+			CompositionHelper.ComposeParts (this);
+		}
+		
+		[Import("Add")]
+		private IOperation _add;
+		public decimal Add(params decimal[] args) 
+		{
+			return _add.Execute (args);
+		}
+	
+		[Import("Subtract")]
+		private IOperation _subtract;
+		public decimal Subtract(params decimal[] args)
+		{
+			return _subtract.Execute (args);
+		}
+	}
+	
+	public static class CompositionHelper 
+	{
+		public static void ComposeParts(object compositionTarget) {
+			var catalog = new DirectoryCatalog(
+				@"C:\Projects\github\ModularAspNetMvc\Chapters\Modularity\MEFCalculator.SeparateFiles\Modules.Deploy");
+			var container = new CompositionContainer(catalog);
+			container.SatisfyImportsOnce(compositionTarget);
+		}
+	}
+}
 
+```
 
+## IOperation.cs
 
+```csharp
+namespace MEFCalculator
+{
+	public interface IOperation
+	{
+		decimal Execute(params decimal[] args);
+	}
+}
+```
 
+## Modules\Add\Add.cs
 
+```csharp
+using System.ComponentModel.Composition;
 
+namespace MEFCalculator
+{
+	[Export("Add", typeof(IOperation))]
+	public class Add : IOperation {
+		public decimal Execute(params decimal[] args) {
+			decimal result = 0M;
+			for(var i = 0; i < args.Length; i++) {
+				result += args[i];
+			}
+			return result;
+		}
+	}
+}
+```
+## Modules\Subtract\Subtract.cs
+
+```csharp
+using System.ComponentModel.Composition;
+
+namespace MEFCalculator
+{
+	[Export("Subtract", typeof(IOperation))]
+	public class Subtract : IOperation {
+		public decimal Execute(params decimal[] args) {
+			decimal result = 0M;
+			if (args.Length > 0)
+			{
+				result = args[0];
+				if (args.Length > 1) {
+					for(var i = 1; i < args.Length; i++) {
+						result = result - args[i];
+					}
+				}
+			}
+			return result;
+		}
+	}
+}
+```
+
+## MEFCalculatorTests.MEFCalculatorTest.cs
+
+```csharp
+using NUnit.Framework;
+using MEFCalculator;
+
+namespace MEFCalculatorTests
+{
+	[TestFixture()]
+	public class MEFCalculatorSeparateFilesTests
+	{
+		private Calculator _subject = new Calculator();
+		
+		[Test()]
+		public void add_sums_three_numbers()
+		{
+			var result = _subject.Add (5.5M, 6M, 7M);
+			
+			Assert.AreEqual (18.5, result);
+		}
+		
+		[Test()]
+		public void subtract_removes_two_numbers_from_first()
+		{
+			var result = _subject.Subtract (10M, 5M, 3M);
+			
+			Assert.AreEqual (2M, result);
+		}
+	}
+}
+```
+
+As you can see, all we have done in this iteration is to shufle the code around into separate files and into separate 
+physical projects. So, what's an immediate benefit for this approach? The first one that comes to my mind is agile development, 
+with its heavy focus on delivering business value rapidly and with lots of stakeholder feedback through iterative cycles. The 
+reason for this is that you can now develop the math operations in isolation from each other. Thus, you can have different 
+developers working on each, if you need to do that, without stepping on each other's work at all.
+
+Of course, you'd be right to note that we still must add a new wrapper method to the  `Calculator` class every time we add 
+a new operation. This is true, but only because we are relying on C#'s static features such that you can have strong code 
+completion in an IDE. Essentially, the `Calculator` class is a thin facade on top of our very independent math operation 
+classes. Let's do a new refactoring that, while removing our strongly-typed facade methods, will afford us the ability to 
+add additional implementations of the `IOperation` interface into the `Modules.Deploy` folder, and then invoke them, without 
+needing to modify the `Calculator` class at all.
+
+TODO: next step
+allows us to dynamically add operations
 
 
 
