@@ -643,9 +643,15 @@ classes. Let's do a new refactoring that, while removing our strongly-typed faca
 add additional implementations of the `IOperation` interface into the `Modules.Deploy` folder, and then invoke them, without 
 needing to modify the `Calculator` class at all.
 
-TODO: next step
-allows us to dynamically add operations
+# Outline for remainder
 
+* Iteration: Dynamically add and invoke operations from a command-line script interface, interactively
+* Iteration: Move test cases for each operation into the solution folder for that operation, not the Calculator class
+* Iteration: Show piping of operations with a left->right precedence
+* Iteration: Create a web-facade on top of the operations so that they can be invoked as a "web service", and retain 
+capability for operations to be dynamically deployed into the bin folder as separate DLLs. 
+* Iteration: Create a desktop, WPF app on top of the operations, supporting "plugins"
+* Iteration: Show how to add plugins using IronPythonMEF
 
 
 
