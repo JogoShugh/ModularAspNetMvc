@@ -824,6 +824,60 @@ TODO
 TODO -- consider AutoMock, FakeItEasy. Also, prefer creating the instances by hand as simple implementations of IOperation. 
 This will force a refactoring of Calculator, in that it currently has a hard-coded DirectoryCatalog.
 
+# Reusing the Calculator in a simple web service
+
+In ASP.NET we can create a very simple web service, implemented within an IHttpModule-implementing class, by using this code:
+
+```csharp
+using System;
+using System.Web;
+using MEFCalculator;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace MathRESTService
+{
+	public class MathHttpModule : IHttpModule
+	{
+		private static Calculator _calculator = new Calculator();
+		
+		public void Init(HttpApplication app) {
+			app.BeginRequest += (object sender, EventArgs e) => {
+				var query = app.Request.Url.Query;
+				if (string.IsNullOrWhiteSpace(query)) {
+					app.Response.Write("Please specify a query");
+					app.Response.End();
+				}
+				else {
+					query = query.Replace(',', ' ');
+					query = query.Replace(';', '\n');
+					query = query.Substring(1);
+
+					var results = _calculator.ExecuteScript(query);
+					var buffer = new StringBuilder();
+					foreach(var result in results) {
+						buffer.AppendLine(result.ToString());
+					}
+
+					app.Response.Write(buffer.ToString());
+					app.Response.End();
+				}
+			};
+		}
+
+		public void Dispose() {
+		}
+	}
+}
+```
+
+There are a couple of things to notice in this:
+
+* We replace ' with a space
+* We replace ; with a new line
+
+Because of this, we can have the service process multiple calculations in a single request.
 
 # Outline for remainder
 
