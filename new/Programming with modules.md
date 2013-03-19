@@ -874,10 +874,86 @@ namespace MathRESTService
 
 There are a couple of things to notice in this:
 
-* We replace ' with a space
-* We replace ; with a new line
+* We replace `'` with a space, this makes it easier to pass the parameters in the URL query string, since spaces get translated
+to ugly `%20` escaped sequences
+* We replace `;` with a new line, since our `Calculator.ExecuteScript` method expects inputs to be separated by new lines
 
-Because of this, we can have the service process multiple calculations in a single request.
+Because of this, we can have the service process multiple calculations in a single request, which we build up over a loop that 
+writes to a `StringBuilder` instance.
+
+# Create a jQuery Mobile based mobile web app for the calculator
+
+Now that we have a functioning web service that lets us calculate results, how about we put a better looking web interface on 
+top of it? We'll use the popular, open source jQuery Mobile library to do this. We're only going to use a very small subset of 
+jQuery Mobile's features at this time, but we will get much more sophisticated later on in the book with it.
+
+jQuery Mobile is quite easy to get started with. But, before we use it, it would be helpful to us if we could query our web 
+service for a list of all the operations it supports, so that we don't have to have a static user interface, but rather can 
+dynamically build it based upon however many operations exist. 
+
+## Adding metadata to our calculator and web service
+
+First, let's modify our unit test class for the calculator itself:
+
+```csharp
+[Test]
+public void returns_operations_list() 
+{
+	var expectedOperations = new List<string>();
+	expectedOperations.Add("Add");
+	expectedOperations.Add("Subtract");
+
+	var actualOperations = _subject.GetOperations();
+
+	CollectionAssert.AreEquivalent(expectedOperations, actualOperations);
+}
+```
+
+Now, implement the `GetOperations` method on the `Calculator:
+
+```csharp
+public IList<string> GetOperations() {
+	return _operations.Select(x => x.GetType().Name).ToList();
+}
+```
+
+Finally, modify the web service class's `Init` method to look like this:
+
+```csharp
+public void Init(HttpApplication app) {
+	app.BeginRequest += (object sender, EventArgs e) => {
+		var query = app.Request.Url.Query;
+		if (string.IsNullOrWhiteSpace(query)) {
+			var buffer = new StringBuilder();
+			var operations = _calculator.GetOperations();
+			foreach (var operationName in operations) {
+				buffer.AppendLine(operationName);
+			}
+			app.Response.Write(buffer.ToString());
+			app.Response.End();
+		}
+		else {
+			query = query.Replace(',', ' ');
+			query = query.Replace(';', '\n');
+			query = query.Substring(1);
+
+			var results = _calculator.ExecuteScript(query);
+			var buffer = new StringBuilder();
+			foreach(var result in results) {
+				buffer.AppendLine(result.ToString());
+			}
+
+			app.Response.Write(buffer.ToString());
+			app.Response.End();
+		}
+	};
+}
+```
+Now, when your browse the web server without passing any parameters on the query string, you get a simple new-line 
+delimited list of the named operations. Pretty simple.
+
+Open the `MathHttpModule` class again, and modify the `Init` method so that it now looks like this:
+
 
 # Outline for remainder
 
