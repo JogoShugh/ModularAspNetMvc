@@ -1,10 +1,14 @@
 # What is a module?
 
-Before we even start talking about concepts like Test-Driven Development, Behavior-Driven Development, 
+Before we get into conceptual detail on topics like Test-Driven Development, Behavior-Driven Development, 
 or any of the ideas from Domain-Driven Design and the latest hotness, Command and Query Responsibility Segregation 
-(CQRS), we need some lessons on modularity.
+(CQRS), we need some lessons on modularity and its evil, vile doppleganger monolithity (yes, I made that up). 
 
-A great definition of a [modular programming](http://en.wikipedia.org/wiki/Modular_programming) 
+Monolithity masquerades as a convenient, fast way to build applications that purports to make people happy by
+reducing the amount of time it takes to get something, anything, "shipped". This usually comes at the expense of
+manageability and extensibility. Those prices are too high to pay for important systems.
+
+To start, here's a great definition of a [modular programming](http://en.wikipedia.org/wiki/Modular_programming) 
 comes from Wikipedia:
 
 > Modular programming (also called "top-down design" and "stepwise refinement") is a software design technique
@@ -16,10 +20,24 @@ comes from Wikipedia:
 > The elements defined in the interface are detectable by other modules. The implementation contains the
 > working code that corresponds to the elements declared in the interface.
 
-This is a wonderful working definition. Although there is a lot to it, we will break it down by using example
-code, without delay.
+This is a wonderful working definition of modular programming! Although there is a lot to it, we will break it 
+down by using example code very soon. But, first let's see the definition of modularity's evil twin, the 
+[monolith](http://en.wikipedia.org/wiki/Monolithic_system):
 
-## Separating functionality of a program into independent, interchangeable modules
+TODO: link: https://creately.com/app/?tempID=h165rwt81#
+
+> A software system is called "monolithic" if it has a monolithic architecture, in which functionally 
+> distinguishable aspects (for example data input and output, data processing, error handling, and the user 
+> interface), are not architecturally separate components but are all interwoven.
+
+Here's a typical depiction of what a monolithic application looks like at the package level. Typically, each of the 
+horizontal packages depicted here would be compiled into a DLL, resulting in 3 separate DLLs. Some people will say 
+that this is "good design", and is based on the layers pattern. 
+
+TODO: add image
+![MonolithicApplication.png]
+
+## Exercise 01: Monolithic Calculator TODO fix this
 
 Let's start with the canonical calculator example, in C#. We start with an NUnit test project that defined two 
 test cases, one for adding decimals, and one for subtracting numbers from a starting number. Our subject is the 
@@ -84,6 +102,9 @@ namespace Modularity
 	}
 }
 ```
+
+## Separating functionality of a program into independent, interchangeable modules
+
 
 This is all simple enough, and you might say that we could add all sorts of mathematical methods to this 
 `Calculator` class and end up with something like the calculator you have on your iPhone or Android, or the one 
