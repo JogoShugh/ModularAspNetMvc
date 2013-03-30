@@ -91,7 +91,7 @@ TODO: rework this with HTML simply:
 
 1. Inherits `System.Web.Ui.Page` or `System.Web.Mvc.Controller` and an event-handler or action handler:
 2. Instantiates an instance of a business layer class, like `User` or `Product` and sets a bunch of instance properties, like `FirstName`, `LastName`, `PhoneNumber`, or the like.
-3. Calls a method on the `User` instance, such as `Save()`  
+3. Calls a method on the `User` instance, such as `Save()`	
 4. The `Save()` method internally instantiates a data access class, which executes a stored procedure on a database.
 
 ## Exercise 01: Monolithic Calculator TODO fix this
@@ -355,13 +355,254 @@ Thankfully, our task is far simpler in JavaScript because of its dynamic nature.
 Here are several progressively more useful ways to achieve modularity with JavaScript files that we'll examine:
 
 1. Manually include references to separate operation scripts, each of which augment the `Calculator` constructor function with new functionality.
-2. Build a remote service with Node.js to return a list of all available operation script files, and loading them all sequentially.
+2. Build a remote service with Node.js to return a list of all available operation script files, and load them all sequentially.
 3. Refactor the remote service to bundle all available operations into a single file to reduce download time.
 4. Use RequireJS to load files that support the Asynchronous Module Definition pattern, and to wrap others that don't.
 
 # Manually include separate scripts that build up the prototype
 
 Live Fiddle: http://jsfiddle.net/JoshGough/32VPF/
+
+Suppose you create the `Calculator` constructor in one file, `Calculator.js` and then you want multiple, possibly distributed team-members to be able to independently add new operations to it, and without any risk of clobbering other's work. You could, quite simply separate files for each operation which augment the prototype, and manually include those files into the hosting HTML page. Here's an example:
+
+## Listing TODO Calculator.js
+
+```javascript
+function Calculator() {
+}
+```
+
+## Listing TODO modules\add.js
+
+```javascript
+Calculator.prototype.add = function () {
+    var result = 0;
+    for (var i = 0, j = arguments.length; i < j; i++) {
+        result += parseFloat(arguments[i]);
+    }
+    return result;
+};
+```
+
+## Listing TODO modules\subtract.js
+
+```javascript
+Calculator.prototype.subtract = function () {
+    var result = 0;
+    if (arguments.length > 0) result = arguments[0];
+    for (var i = 1, j = arguments.length; i < j; i++) {
+        result -= parseFloat(arguments[i]);
+    }
+    return result;
+};
+```
+
+## Listing TODO calculator.html
+
+```html
+
+<html>
+<head>
+    <title>Calculator - File Based Extensibility</title>        
+    <script src="https://gist.github.com/JogoShugh/5275545/raw/747581724f7306851e221f9f5b8792f09073710d/calcultor.js" language="javascript"></script>
+    <script src="https://gist.github.com/JogoShugh/5275545/raw/4b928cb9031deb4036ea590e02e795ac3f4b569b/add.js" language="javascript"></script>
+    <script src="https://gist.github.com/JogoShugh/5275545/raw/1a4a0f23da0c60f2b5359078d6bbd9254e629436/subtract.js" language="javascript"></script>
+    <script language="javascript">
+        $(function() {
+            var calc = new Calculator();
+            var output = $("#output");
+            output.append(calc.add(1,2,3) + "<br/>");
+            output.append(calc.subtract(10,5,1) + "<br/>");
+            output.append(calc.subtract(calc.add(10,9,8), 5, 3) + "<br/>");
+        });
+    </script>
+</head>
+<body>
+    <div id="output"></div>    
+</body>
+</html>
+```
+
+## Explanation of Calculator with file-based extensibility
+
+This example is very straight-forward. The `Calculator.js` file does nothing more than declare a top-level, empty constructor function. Its sole purpose is to serve as a container for its own prototype, to which we will later attach additional functions to implement the various operations we want to support.
+
+In the `add.js` and `subtract.js` files, we placed the respective functions for those operations, augmenting the `Calculator.prototype` object as just described.
+
+Finally, the HTML file, `calculator.html` sets references to each script, making sure that `Calculator.js` gets specified first. Then, in the in-line script, it uses jQuery's `$(function(){...})` helper to set up a function to load once the page's DOM and resources are fully loaded. At this point, all the scripts are loaded, and our `Calculator`, once so bare and lonely, has both the `add` and `subtract` functions attached to its prototype. 
+
+Visit this [JS Fiddle](http://jsfiddle.net/JoshGough/32VPF/) to run it now live. The output should be **6, 4, and 19**.
+
+Or, to run this on your own machine with Node.js, you can use the following files:
+
+TODO create repo for this
+
+## index.html
+
+```html
+<html>
+<head>
+    <title>Calculator - File Based Extensibility</title>
+    <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>    
+    <script src="calculator.js" language="javascript"></script>
+    <script src="modules/add.js" language="javascript"></script>
+    <script src="modules/subtract.js" language="javascript"></script>
+    <script language="javascript">
+        $(function() {
+            var calc = new Calculator();
+            var output = $("#output");
+            output.append(calc.add(1,2,3) + "<br/>");
+            output.append(calc.subtract(10,5,1) + "<br/>");
+            output.append(calc.subtract(calc.add(10,9,8), 5, 3) + "<br/>");
+        });
+    </script>
+</head>
+<body>
+    <div id="output"></div>    
+</body>
+</html>
+
+```
+
+## server.js 
+
+```javascript
+var express = require("express"),
+    app     = express(),
+    port    = parseInt(process.env.PORT, 10) || 4567;
+    
+app.get("/", function(req, res) {
+  res.redirect("/index.html");
+});
+
+app.configure(function(){
+  app.use(express.methodOverride());
+  app.use(express.bodyParser());
+  app.use(express.static(__dirname + '/public'));
+  app.use(express.errorHandler({
+    dumpExceptions: true, 
+    showStack: true
+  }));
+  app.use(app.router);
+});
+
+app.listen(port);
+```
+## Running the server with Node.js
+
+To run this:
+
+* Install Node.js from its web site for your operating system
+* Type `npm install express`
+* Type `node server.js &`
+* Navigate to `http://localhost:4567`
+
+## Benefits of file-based extensibility
+
+Here are some strong points of this approach:
+
+* It increases our ability to add many new operations to the calculator while 
+reducing the risk of the operations, and their respective authors, from conflicting with each other
+* By separating each operation into discrete files, it supports the TODO separation-of-concerns maxim
+
+## Drawbacks of this particular approach
+
+While these benefits are worth having now and in the future, there's still a problem with this simplistic approach. Most glaringly, even if we add a new operation, like `multiply` to the modules folder, we still need to modify the `index.html` file to manually reference that module. This makes the job of deployment and management more difficult.
+
+More technically this violates the Open/Closed Principle of object-oriented programming. Originally formulated by Betrand Meyer, this principle states: 
+
+> software entities (classes, modules, functions, etc.) should be open for extension, but closed for modification
+
+Aren't we somewhat supporting this, however? After all, we are extending `Calculator` by adding code, rather than modifying code. While this is true, we have just pushed the problem upward in the chain of execution, all the way up to the client code, our HTML page itself.
+
+Let's address this in our next iteration by refactoring our code.
+
+# Build a remote service with Node.js to return a list of all available operation script files, and load them all sequentially.
+
+Let's modify the `server.js` file so that we can query for a list of operations. You can modify your existing code or copy and paste the entire folder first.
+
+## Add a new route to get a list of operations
+
+The new route `/calculator/operations` will return an array of file names corresponding to each file within the `public/modules` folder.
+
+```javascript
+var express = require("express"),
+    app     = express(),
+    port    = parseInt(process.env.PORT, 10) || 4567,
+    fs      = require("fs");
+    
+app.get("/", function(req, res) {
+  res.redirect("/index.html");
+});
+
+app.get("/calculator/operations", function(req, res) {
+  var files = fs.readdirSync(__dirname + '/public/modules');
+  res.send(files);
+});
+
+app.configure(function(){
+  app.use(express.methodOverride());
+  app.use(express.bodyParser());
+  app.use(express.static(__dirname + '/public'));
+  app.use(express.errorHandler({
+    dumpExceptions: true, 
+    showStack: true
+  }));
+  app.use(app.router);
+});
+
+app.listen(port);
+
+```
+
+## Use jQuery's $.getScript to dynamically load the operations
+
+While we soon examine much easier ways to achieve this with open source libraries like RequireJS very soon, we need to first understand the concepts.
+
+TODO better description
+
+Here's a new version of `index.html` that will query the new `/calculator/operations` we just defined, and then use jQuery's `$.getScript` function to load and execute it. This successfully augments `Calculator.prototype`, and when all scripts are finished, we call a new `main` function, which contains the same code that we had previously placed directly in the jQuery document ready handler function.
+
+```html
+<html>
+<head>
+    <title>Calculator - File Based Extensibility</title>
+    <script src="jquery.min.js" language="javascript"></script>    
+    <script src="calculator.js" language="javascript"></script>
+    <script language="javascript">
+        function main() {
+            var calc = new Calculator();
+            var output = $("#output");
+            output.append(calc.add(1,2,3) + "<br/>");
+            output.append(calc.subtract(10,5,1) + "<br/>");
+            output.append(calc.subtract(calc.add(10,9,8), 5, 3) + "<br/>");            
+        }
+
+        $(function() {
+            $.get("calculator/operations").done(function(operations) {
+                loaded = 0;
+                function onLoaded() {
+                    loaded++;
+                    if (loaded == operations.length) {
+                        main();
+                    }
+                }
+                for (var i = 0, len = operations.length; i < len; i++) {
+                    $.getScript("modules/" + operations[i], onLoaded);
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+    <div id="output"></div>    
+</body>
+</html>
+```
+
+
+
+
 
 
 TODO: BELOW IS STILL OLD C#
