@@ -1,0 +1,7 @@
+﻿@model Core.Infrastructure.Ui.Mvc.ViewModels.CommandActionCollection
+<div class="jcontainer">
+@foreach (var commandAction in Model.CommandActions)
+{
+    <input type="submit" name="@("Action-" + commandAction.ControllerAction)" value="@(commandAction.Label)" /> 
+}
+</div>    
